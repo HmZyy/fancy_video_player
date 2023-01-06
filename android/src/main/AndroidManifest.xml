@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="gg.HmZyy.fancy_video_player">
+
+    <application android:usesCleartextTraffic="true">
+        <activity
+            android:name=".PlayerActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:exported="false"
+            android:label="@string/title_activity_player"
+            android:theme="@style/Theme.Android.Fullscreen" />
+    </application>
+
+</manifest>
