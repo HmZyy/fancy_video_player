@@ -288,7 +288,7 @@
             style="@style/ExoMediaButton.Play"
             android:layout_width="72dp"
             android:layout_height="72dp"
-            android:src="@drawable/anim_pause_to_play"
+            android:src="@drawable/anim_play_to_pause"
             tools:ignore="ContentDescription" />
 
         </androidx.cardview.widget.CardView>

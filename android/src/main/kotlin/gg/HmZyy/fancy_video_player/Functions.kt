@@ -2,10 +2,7 @@ package gg.HmZyy
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
-import android.os.Build
-import android.os.Handler
-import android.os.Looper
-import android.os.PowerManager
+import android.os.*
 import android.provider.Settings
 import android.util.AttributeSet
 import android.view.*
@@ -178,4 +175,27 @@ fun logError(e: Exception) {
 }
 
 fun toastString(s: String?, activity: Activity? = null) {
+}
+
+class SafeClickListener(
+    private var defaultInterval: Int = 1000,
+    private val onSafeCLick: (View) -> Unit
+) : View.OnClickListener {
+
+    private var lastTimeClicked: Long = 0
+
+    override fun onClick(v: View) {
+        if (SystemClock.elapsedRealtime() - lastTimeClicked < defaultInterval) {
+            return
+        }
+        lastTimeClicked = SystemClock.elapsedRealtime()
+        onSafeCLick(v)
+    }
+}
+
+fun View.setSafeOnClickListener(onSafeClick: (View) -> Unit) {
+    val safeClickListener = SafeClickListener {
+        onSafeClick(it)
+    }
+    setOnClickListener(safeClickListener)
 }

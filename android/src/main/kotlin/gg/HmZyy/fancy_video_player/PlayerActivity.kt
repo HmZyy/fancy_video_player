@@ -3,21 +3,24 @@ package gg.HmZyy.fancy_video_player
 import android.animation.ObjectAnimator
 import androidx.appcompat.app.AppCompatActivity
 import android.annotation.SuppressLint
+import android.app.AlertDialog
 import android.app.PictureInPictureParams
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.drawable.Animatable
+import android.hardware.SensorManager
 import android.media.AudioManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.util.Rational
-import android.view.GestureDetector
-import android.view.MotionEvent
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.ImageButton
 import android.widget.TextView
 import androidx.annotation.RequiresApi
@@ -53,6 +56,8 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
     private lateinit var player: ExoPlayer
     private lateinit var binding: ActivityPlayerBinding
     private lateinit var videoUri: String
+    private lateinit var playbackParameters: PlaybackParameters
+    private var orientationListener: OrientationEventListener? = null
 
 
     // States
@@ -76,12 +81,15 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
     private lateinit var exoPip: ImageButton
     private lateinit var exoSkip: View
     private lateinit var exoScreen: ImageButton
+    private lateinit var exoSpeed: ImageButton
+    private lateinit var exoRotate: ImageButton
 
     // Handlers
     private val handler = Handler(Looper.getMainLooper())
 
     //
     private var notchHeight: Int = 0
+    var rotation = 0
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -134,7 +142,8 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
         exoPip = playerView.findViewById(R.id.exo_pip)
         exoSkip = playerView.findViewById(R.id.exo_skip)
         exoScreen = playerView.findViewById(R.id.exo_screen)
-
+        exoSpeed = playerView.findViewById(R.id.exo_playback_speed)
+        exoRotate = playerView.findViewById(R.id.exo_rotate)
 
 
         //Play Pause
@@ -196,6 +205,30 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
         var animationSpeed: Float = 1f
         val gestureSpeed = (300 * animationSpeed).toLong()
 
+        if (Settings.System.getInt(contentResolver, Settings.System.ACCELEROMETER_ROTATION, 0) != 1) {
+            requestedOrientation = rotation
+            exoRotate.setOnClickListener {
+                requestedOrientation = rotation
+                it.visibility = View.GONE
+            }
+            orientationListener = object : OrientationEventListener(this, SensorManager.SENSOR_DELAY_UI) {
+                override fun onOrientationChanged(orientation: Int) {
+                    if (orientation in 45..135) {
+                        if (rotation != ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE) exoRotate.visibility = View.VISIBLE
+                        rotation = ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE
+                    } else if (orientation in 225..315) {
+                        if (rotation != ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) exoRotate.visibility = View.VISIBLE
+                        rotation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                    }
+                }
+            }
+            orientationListener?.enable()
+        }
+
+        // Back button
+        playerView.findViewById<ImageButton>(R.id.exo_back).setOnClickListener {
+            onBackPressedDispatcher.onBackPressed()
+        }
 
         //Player UI Visibility Handler
         val brightnessRunnable = Runnable {
@@ -353,6 +386,38 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
                 }
             )
         }
+
+        //Cast
+        playerView.findViewById<ImageButton>(R.id.exo_cast).apply {
+            visibility = View.VISIBLE
+            setSafeOnClickListener {
+                cast()
+            }
+        }
+
+        // Playback Speed
+        val speeds =
+                arrayOf(0.25f, 0.33f, 0.5f, 0.66f, 0.75f, 1f, 1.25f, 1.33f, 1.5f, 1.66f, 1.75f, 2f)
+
+        val speedsName = speeds.map { "${it}x" }.toTypedArray()
+        var curSpeed = 1
+
+        playbackParameters = PlaybackParameters(speeds[curSpeed])
+        var speed: Float
+        val speedDialog = AlertDialog.Builder(this, R.style.DialogTheme).setTitle("Speed")
+        exoSpeed.setOnClickListener {
+            speedDialog.setSingleChoiceItems(speedsName, curSpeed) { dialog, i ->
+                if (isInitialized) {
+                    speed = speeds[i]
+                    curSpeed = i
+                    playbackParameters = PlaybackParameters(speed)
+                    player.playbackParameters = playbackParameters
+                    dialog.dismiss()
+                    hideSystemBars()
+                }
+            }.show()
+        }
+        speedDialog.setOnCancelListener { hideSystemBars() }
     }
 
     private fun releasePlayer(){
@@ -395,6 +460,29 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
             (exoPlay.drawable as Animatable?)?.start()
             if (!this.isDestroyed) Glide.with(this)
                 .load(if (isPlaying) R.drawable.anim_play_to_pause else R.drawable.anim_pause_to_play).into(exoPlay)
+        }
+    }
+
+    // Cast
+    private fun cast() {
+        val videoURL = videoUri ?: return
+        val shareVideo = Intent(Intent.ACTION_VIEW)
+        shareVideo.setDataAndType(Uri.parse(videoURL), "video/*")
+        shareVideo.setPackage("com.instantbits.cast.webvideo")
+//        shareVideo.putExtra("title", media.userPreferredName + " : Ep " + episodeTitleArr[currentEpisodeIndex])
+        val headers = Bundle()
+//        video?.url?.headers?.forEach {
+//            headers.putString(it.key, it.value)
+//        }
+        shareVideo.putExtra("android.media.intent.extra.HTTP_HEADERS", headers)
+        shareVideo.putExtra("secure_uri", true)
+        try {
+            startActivity(shareVideo)
+        } catch (ex: ActivityNotFoundException) {
+            val intent = Intent(Intent.ACTION_VIEW)
+            val uriString = "market://details?id=com.instantbits.cast.webvideo"
+            intent.data = Uri.parse(uriString)
+            startActivity(intent)
         }
     }
 
