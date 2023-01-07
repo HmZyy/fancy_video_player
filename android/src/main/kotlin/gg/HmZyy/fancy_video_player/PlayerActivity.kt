@@ -33,6 +33,7 @@ import com.google.android.exoplayer2.DefaultLoadControl
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
+import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import com.google.android.exoplayer2.ui.StyledPlayerView
 import com.google.android.exoplayer2.util.Util
 import com.google.android.material.slider.Slider
@@ -59,6 +60,7 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
     private var isPlayerPlaying = true
     private var playbackPosition: Long = 0
     private var isBuffering = true
+    private var isFullscreen: Int = 0
 
     // Options
     private var pipEnabled = false
@@ -73,6 +75,7 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
     private lateinit var exoVolumeCont: View
     private lateinit var exoPip: ImageButton
     private lateinit var exoSkip: View
+    private lateinit var exoScreen: ImageButton
 
     // Handlers
     private val handler = Handler(Looper.getMainLooper())
@@ -130,6 +133,7 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
         exoVolumeCont = playerView.findViewById(R.id.exo_volume_cont)
         exoPip = playerView.findViewById(R.id.exo_pip)
         exoSkip = playerView.findViewById(R.id.exo_skip)
+        exoScreen = playerView.findViewById(R.id.exo_screen)
 
 
 
@@ -322,6 +326,32 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
             fastForwardDetector.onTouchEvent(event)
             v.performClick()
             true
+        }
+
+        // Fullscreen
+        playerView.resizeMode = when (isFullscreen) {
+            0    -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+            1    -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+            2    -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+            else -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+        }
+
+        exoScreen.setOnClickListener {
+            if (isFullscreen < 2) isFullscreen += 1 else isFullscreen = 0
+            playerView.resizeMode = when (isFullscreen) {
+                0    -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+                1    -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                2    -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+                else -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+            }
+            toastString(
+                when (isFullscreen) {
+                    0    -> "Original"
+                    1    -> "Zoom"
+                    2    -> "Stretch"
+                    else -> "Original"
+                }
+            )
         }
     }
 
