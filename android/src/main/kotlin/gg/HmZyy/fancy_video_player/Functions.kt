@@ -10,12 +10,27 @@ import android.widget.FrameLayout
 import androidx.core.math.MathUtils
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
+import com.google.android.exoplayer2.database.StandaloneDatabaseProvider
 import com.google.android.exoplayer2.ui.DefaultTimeBar
+import com.google.android.exoplayer2.upstream.cache.LeastRecentlyUsedCacheEvictor
+import com.google.android.exoplayer2.upstream.cache.SimpleCache
 import com.google.android.material.snackbar.Snackbar
+import java.io.File
+import java.io.Serializable
 import java.lang.reflect.Field
 import java.util.*
 import kotlin.math.log2
 import kotlin.math.pow
+
+val defaultHeaders = mapOf(
+    "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36"
+)
+
+class SerializableMap(private val map: Map<String, String>) : Serializable {
+    fun getMap(): Map<String, String> {
+        return map
+    }
+}
 
 @SuppressLint("ClickableViewAccessibility")
 class SpinnerNoSwipe : androidx.appcompat.widget.AppCompatSpinner {
@@ -198,4 +213,22 @@ fun View.setSafeOnClickListener(onSafeClick: (View) -> Unit) {
         onSafeClick(it)
     }
     setOnClickListener(safeClickListener)
+}
+object VideoCache {
+    private var simpleCache: SimpleCache? = null
+    fun getInstance(context: Context): SimpleCache {
+        val databaseProvider = StandaloneDatabaseProvider(context)
+        if (simpleCache == null)
+            simpleCache = SimpleCache(
+                File(context.cacheDir, "exoplayer").also { it.deleteOnExit() }, // Ensures always fresh file
+                LeastRecentlyUsedCacheEvictor(300L * 1024L * 1024L),
+                databaseProvider
+            )
+        return simpleCache as SimpleCache
+    }
+
+    fun release() {
+        simpleCache?.release()
+        simpleCache = null
+    }
 }

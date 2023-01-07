@@ -3,8 +3,10 @@ package gg.HmZyy.fancy_video_player
 import android.content.Context
 import android.content.Intent
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+import android.os.Bundle
 import android.util.Log
 import androidx.annotation.NonNull
+import gg.HmZyy.SerializableMap
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
@@ -30,9 +32,14 @@ class FancyVideoPlayerPlugin: FlutterPlugin, MethodCallHandler {
   override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
     if (call.method == "startPlayer") {
       val url = call.argument<String>("url")
-      Log.i("flutter", url.toString())
+      var headers = call.argument<Map<String, String>>("headers")
+      if (headers == null) {
+        headers = emptyMap()
+        Log.e("flutter", "headers is null")
+      }
+      Log.i("flutter", url ?: "no url")
       if (url != null) {
-        startPlayer(url)
+        startPlayer(url, headers)
         result.success("Launched Success")
       }
       result.error("No Url provided","Failed to launch", "tried to call startPlayer with no url")
@@ -45,10 +52,12 @@ class FancyVideoPlayerPlugin: FlutterPlugin, MethodCallHandler {
     channel.setMethodCallHandler(null)
   }
 
-  private fun startPlayer(url: String) {
+  private fun startPlayer(url: String, headers: Map<String, String>) {
+    val serializableHeaders = SerializableMap(headers)
     val intent = Intent(context, PlayerActivity::class.java)
     intent.addFlags(FLAG_ACTIVITY_NEW_TASK)
     intent.putExtra("url", url)
+    intent.putExtra("headers", serializableHeaders)
     context.startActivity(intent)
   }
 }

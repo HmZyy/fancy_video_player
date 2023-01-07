@@ -23,7 +23,8 @@ abstract class FancyVideoPlayerPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  Future<String?> startPlayer({required String url}) {
+  Future<String?> startPlayer(
+      {required String url, Map<String, String>? headers}) {
     throw UnimplementedError('startPlayer() has not been implemented.');
   }
 }

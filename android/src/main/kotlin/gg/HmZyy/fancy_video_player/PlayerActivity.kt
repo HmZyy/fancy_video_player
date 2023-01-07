@@ -19,6 +19,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.util.Log
 import android.util.Rational
 import android.view.*
 import android.widget.ImageButton
@@ -35,9 +36,15 @@ import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.DefaultLoadControl
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource
+import com.google.android.exoplayer2.source.DefaultMediaSourceFactory
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import com.google.android.exoplayer2.ui.StyledPlayerView
+import com.google.android.exoplayer2.upstream.DataSource
+import com.google.android.exoplayer2.upstream.DefaultHttpDataSource
+import com.google.android.exoplayer2.upstream.HttpDataSource
+import com.google.android.exoplayer2.upstream.cache.CacheDataSource
 import com.google.android.exoplayer2.util.Util
 import com.google.android.material.slider.Slider
 import gg.HmZyy.*
@@ -48,6 +55,7 @@ import kotlinx.coroutines.launch
 import java.util.*
 import kotlin.math.roundToInt
 
+
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
  * status bar and navigation/system bar) with user interaction.
@@ -56,8 +64,10 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
     private lateinit var player: ExoPlayer
     private lateinit var binding: ActivityPlayerBinding
     private lateinit var videoUri: String
+    private lateinit var cacheFactory: CacheDataSource.Factory
     private lateinit var playbackParameters: PlaybackParameters
     private var orientationListener: OrientationEventListener? = null
+    private var headers: Map<String, String> = mapOf()
 
 
     // States
@@ -97,7 +107,12 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
         binding = ActivityPlayerBinding.inflate(layoutInflater)
         setContentView(binding.root)
         supportActionBar?.hide()
+        initializeNetwork(baseContext)
         videoUri = intent.getStringExtra("url") ?: return
+        if (intent.getSerializableExtra("headers") != null){
+            val serializableMap = intent.getSerializableExtra("headers") as SerializableMap
+            headers = serializableMap.getMap()
+        }
         setupPlayer()
         hideSystemBars()
     }
@@ -118,11 +133,39 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
     }
 
     private fun initializePlayer(){
+
+        val simpleCache = VideoCache.getInstance(this)
+        val httpClient = okHttpClient.newBuilder().apply {
+            ignoreAllSSLErrors()
+            followRedirects(true)
+            followSslRedirects(true)
+        }.build()
+        val dataSourceFactory = DataSource.Factory {
+            val dataSource: HttpDataSource = OkHttpDataSource.Factory(httpClient).createDataSource()
+            defaultHeaders.forEach {
+                dataSource.setRequestProperty(it.key, it.value)
+            }
+            headers.forEach {
+                dataSource.setRequestProperty(it.key, it.value)
+            }
+            dataSource
+        }
+
+        cacheFactory = CacheDataSource.Factory().apply {
+            setCache(simpleCache)
+            setUpstreamDataSourceFactory(dataSourceFactory)
+        }
+
         val trackSelector = DefaultTrackSelector(this)
         val loadControl = DefaultLoadControl()
-        player = ExoPlayer.Builder(this).build()
+        player = ExoPlayer.Builder(this)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(cacheFactory))
+            .setTrackSelector(trackSelector)
+            .build()
         binding.playerView.player = player
         val mediaItem: MediaItem = MediaItem.fromUri(videoUri)
+//        val mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(uri)
+
         // Set the media item to be played.
         player.setMediaItem(mediaItem)
         // Prepare the player.
