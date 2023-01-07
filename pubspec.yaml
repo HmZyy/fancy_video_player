@@ -1,6 +1,6 @@
 name: fancy_video_player
-description: A Flutter Implementation for Styled ExoPlayer
-version: 0.0.1
+description: Advanced video player based on exoplayer2. It's easy to use and very customizable.
+version: 0.0.2
 homepage:
 repository: https://github.com/HmZyy/fancy_video_player
 
