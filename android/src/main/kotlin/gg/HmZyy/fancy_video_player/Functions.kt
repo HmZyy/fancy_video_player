@@ -8,11 +8,13 @@ import android.os.Looper
 import android.os.PowerManager
 import android.provider.Settings
 import android.util.AttributeSet
-import android.view.GestureDetector
-import android.view.MotionEvent
-import android.view.View
+import android.view.*
+import android.widget.FrameLayout
 import androidx.core.math.MathUtils
+import androidx.core.view.updateLayoutParams
+import androidx.core.view.updatePadding
 import com.google.android.exoplayer2.ui.DefaultTimeBar
+import com.google.android.material.snackbar.Snackbar
 import java.lang.reflect.Field
 import java.util.*
 import kotlin.math.log2
@@ -170,3 +172,10 @@ fun brightnessConverter(it: Float, fromLog: Boolean) =
         else it, 0.001f, 1f
     )
 
+fun logError(e: Exception) {
+    toastString(e.localizedMessage)
+    e.printStackTrace()
+}
+
+fun toastString(s: String?, activity: Activity? = null) {
+}

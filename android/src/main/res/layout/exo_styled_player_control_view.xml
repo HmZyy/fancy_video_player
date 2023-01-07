@@ -106,26 +106,26 @@
           android:orientation="horizontal"
           app:layout_constraintBottom_toBottomOf="parent">
 
-          <ImageButton
-            android:id="@+id/exo_settings"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:backgroundTint="#00FFFFFF"
-            android:src="@drawable/ic_round_video_settings_24"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:tint="#fff"
-            tools:ignore="ContentDescription,SpeakableTextPresentCheck" />
+<!--          <ImageButton-->
+<!--            android:id="@+id/exo_settings"-->
+<!--            android:layout_width="48dp"-->
+<!--            android:layout_height="48dp"-->
+<!--            android:backgroundTint="#00FFFFFF"-->
+<!--            android:src="@drawable/ic_round_video_settings_24"-->
+<!--            app:layout_constraintBottom_toBottomOf="parent"-->
+<!--            app:layout_constraintEnd_toEndOf="parent"-->
+<!--            app:tint="#fff"-->
+<!--            tools:ignore="ContentDescription,SpeakableTextPresentCheck" />-->
 
-          <ImageButton
-            android:id="@+id/exo_source"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:backgroundTint="#00FFFFFF"
-            android:src="@drawable/ic_round_source_24"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            tools:ignore="ContentDescription,SpeakableTextPresentCheck" />
+<!--          <ImageButton-->
+<!--            android:id="@+id/exo_source"-->
+<!--            android:layout_width="48dp"-->
+<!--            android:layout_height="48dp"-->
+<!--            android:backgroundTint="#00FFFFFF"-->
+<!--            android:src="@drawable/ic_round_source_24"-->
+<!--            app:layout_constraintBottom_toBottomOf="parent"-->
+<!--            app:layout_constraintEnd_toEndOf="parent"-->
+<!--            tools:ignore="ContentDescription,SpeakableTextPresentCheck" />-->
 
           <ImageButton
             android:id="@+id/exo_quality"
@@ -138,15 +138,15 @@
             app:layout_constraintEnd_toEndOf="parent"
             tools:ignore="ContentDescription,SpeakableTextPresentCheck" />
 
-          <ImageButton
-            android:id="@+id/exo_sub"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:backgroundTint="#00FFFFFF"
-            android:scaleX="-1"
-            android:src="@drawable/ic_round_subtitles_24"
-            app:tint="#fff"
-            tools:ignore="ContentDescription,SpeakableTextPresentCheck" />
+<!--          <ImageButton-->
+<!--            android:id="@+id/exo_sub"-->
+<!--            android:layout_width="48dp"-->
+<!--            android:layout_height="48dp"-->
+<!--            android:backgroundTint="#00FFFFFF"-->
+<!--            android:scaleX="-1"-->
+<!--            android:src="@drawable/ic_round_subtitles_24"-->
+<!--            app:tint="#fff"-->
+<!--            tools:ignore="ContentDescription,SpeakableTextPresentCheck" />-->
 
           <ImageButton
             android:id="@+id/exo_download"
@@ -368,30 +368,16 @@
             android:orientation="vertical">
 
             <gg.HmZyy.SpinnerNoSwipe
-              android:id="@+id/exo_ep_sel"
-              android:layout_width="match_parent"
-              android:layout_height="48dp"
-              android:layout_marginEnd="0dp"
-              android:layout_marginBottom="-10dp"
-              android:background="@drawable/spinner_icon"
-              android:backgroundTint="#fff"
-              android:backgroundTintMode="src_atop"
-              android:popupBackground="@drawable/round_corner"
-              tools:ignore="SpeakableTextPresentCheck" />
-
-            <TextView
-              android:id="@+id/exo_anime_title"
-              android:layout_width="match_parent"
-              android:layout_height="wrap_content"
-              android:layout_marginEnd="48dp"
-              android:alpha="0.66"
-              android:fontFamily="@font/poppins"
-              android:singleLine="false"
-              android:textColor="@color/bg_white"
-              android:textSize="12sp"
-              tools:ignore="TextContrastCheck"
-              tools:text="@string/popular_anime" />
-
+                android:id="@+id/exo_ep_sel"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginEnd="0dp"
+                android:layout_marginBottom="-10dp"
+                android:background="@drawable/spinner_icon"
+                android:backgroundTint="#fff"
+                android:backgroundTintMode="src_atop"
+                android:popupBackground="@drawable/round_corner"
+                tools:ignore="SpeakableTextPresentCheck,TouchTargetSizeCheck" />
           </LinearLayout>
 
           <ImageButton
@@ -403,46 +389,6 @@
             tools:ignore="ContentDescription,SpeakableTextPresentCheck" />
 
         </LinearLayout>
-
-        <TextView
-          android:id="@+id/exo_video_name"
-          android:layout_width="match_parent"
-          android:layout_height="wrap_content"
-          android:layout_marginEnd="8dp"
-          android:alpha="0.58"
-          android:ellipsize="marquee"
-          android:singleLine="true"
-          android:textAlignment="textEnd"
-          android:textColor="@color/bg_white"
-          android:textSize="12sp"
-          tools:ignore="TextContrastCheck"
-          tools:text="720x1080" />
-
-        <TextView
-          android:id="@+id/exo_server_info"
-          android:layout_width="match_parent"
-          android:layout_height="wrap_content"
-          android:layout_marginEnd="8dp"
-          android:alpha="0.58"
-          android:fontFamily="@font/poppins_bold"
-          android:textAlignment="textEnd"
-          android:textColor="@color/bg_white"
-          android:textSize="12sp"
-          tools:ignore="TextContrastCheck"
-          tools:text="@string/server_selector" />
-
-        <TextView
-          android:id="@+id/exo_video_info"
-          android:layout_width="match_parent"
-          android:layout_height="wrap_content"
-          android:layout_marginEnd="8dp"
-          android:alpha="0.58"
-          android:textAlignment="textEnd"
-          android:textColor="@color/bg_white"
-          android:textSize="12sp"
-          tools:ignore="TextContrastCheck"
-          tools:text="720x1080" />
-
       </LinearLayout>
 
     </FrameLayout>

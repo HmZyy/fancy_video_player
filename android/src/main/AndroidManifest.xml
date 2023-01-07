@@ -1,14 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="gg.HmZyy.fancy_video_player">
 
-    <application android:usesCleartextTraffic="true">
+    <application android:usesCleartextTraffic="true"
+        android:largeHeap="true"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Saikou"
+        >
         <activity
             android:name=".PlayerActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize"
-            android:exported="false"
-            android:label="@string/title_activity_player"
-            android:theme="@style/Theme.Android.Fullscreen" />
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:label="@string/video"
+            android:launchMode="singleTask"
+            android:supportsPictureInPicture="true"
+            tools:targetApi="n" />
     </application>
 
 </manifest>

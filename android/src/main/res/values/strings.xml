@@ -1,5 +1,7 @@
 <resources>
-    <string name="title_activity_player">zPlayer</string>
+    <string name="video">zPlayer</string>
     <string name="skip">Skip</string>
     <string name="animations">Animations</string>
+    <string name="popular_anime">Popular</string>
+    <string name="server_selector">Server Selector</string>
 </resources>

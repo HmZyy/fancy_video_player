@@ -3,17 +3,24 @@ package gg.HmZyy.fancy_video_player
 import android.animation.ObjectAnimator
 import androidx.appcompat.app.AppCompatActivity
 import android.annotation.SuppressLint
+import android.app.PictureInPictureParams
+import android.content.pm.ActivityInfo
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.drawable.Animatable
 import android.media.AudioManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Rational
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
+import android.widget.TextView
+import androidx.annotation.RequiresApi
 import androidx.core.math.MathUtils
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -21,6 +28,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
+import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.DefaultLoadControl
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
@@ -28,11 +36,9 @@ import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
 import com.google.android.exoplayer2.ui.StyledPlayerView
 import com.google.android.exoplayer2.util.Util
 import com.google.android.material.slider.Slider
-import gg.HmZyy.GesturesListener
-import gg.HmZyy.brightnessConverter
+import gg.HmZyy.*
 import gg.HmZyy.fancy_video_player.databinding.ActivityPlayerBinding
-import gg.HmZyy.getCurrentBrightnessValue
-import gg.HmZyy.hideSystemBars
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.*
@@ -42,22 +48,31 @@ import kotlin.math.roundToInt
  * An example full-screen activity that shows and hides the system UI (i.e.
  * status bar and navigation/system bar) with user interaction.
  */
-class PlayerActivity : AppCompatActivity() {
+class PlayerActivity : AppCompatActivity(), Player.Listener {
     private lateinit var player: ExoPlayer
     private lateinit var binding: ActivityPlayerBinding
     private lateinit var videoUri: String
 
+
     // States
     private var isInitialized = false
     private var isPlayerPlaying = true
+    private var playbackPosition: Long = 0
+    private var isBuffering = true
 
     // Options
+    private var pipEnabled = false
+    private var aspectRatio = Rational(16, 9)
+
+    // Views
     private lateinit var exoPlay: ImageButton
     private lateinit var playerView: StyledPlayerView
     private lateinit var exoBrightness: Slider
     private lateinit var exoBrightnessCont: View
     private lateinit var exoVolume: Slider
     private lateinit var exoVolumeCont: View
+    private lateinit var exoPip: ImageButton
+    private lateinit var exoSkip: View
 
     // Handlers
     private val handler = Handler(Looper.getMainLooper())
@@ -113,6 +128,9 @@ class PlayerActivity : AppCompatActivity() {
         exoPlay = playerView.findViewById(R.id.exo_play)
         exoVolume = playerView.findViewById(R.id.exo_volume)
         exoVolumeCont = playerView.findViewById(R.id.exo_volume_cont)
+        exoPip = playerView.findViewById(R.id.exo_pip)
+        exoSkip = playerView.findViewById(R.id.exo_skip)
+
 
 
         //Play Pause
@@ -129,6 +147,23 @@ class PlayerActivity : AppCompatActivity() {
                 }
             }
         }
+
+        // Picture-in-picture
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            pipEnabled = packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
+            if (pipEnabled) {
+                exoPip.visibility = View.VISIBLE
+                exoPip.setOnClickListener {
+                    enterPipMode()
+                }
+            } else exoPip.visibility = View.GONE
+        }
+
+        exoSkip.setOnClickListener {
+            if (isInitialized)
+                player.seekTo(player.currentPosition + 85 * 1000)
+        }
+
         setupGestures()
     }
 
@@ -272,6 +307,12 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+    private fun releasePlayer(){
+        isPlayerPlaying = player.playWhenReady
+        playbackPosition = player.currentPosition
+        player.release()
+    }
+
     @SuppressLint("InlinedApi")
     private fun hideSystemUi() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -281,17 +322,77 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+    override fun onRenderedFirstFrame() {
+        super.onRenderedFirstFrame()
+        val height = (player.videoFormat ?: return).height
+        val width = (player.videoFormat ?: return).width
+        aspectRatio = Rational(width, height)
+        if (player.duration < playbackPosition)
+            player.seekTo(0)
+    }
+
+
+    override fun onPlaybackStateChanged(playbackState: Int) {
+        if (playbackState == ExoPlayer.STATE_READY) {
+            player.play()
+        }
+        isBuffering = playbackState == Player.STATE_BUFFERING
+        super.onPlaybackStateChanged(playbackState)
+    }
+
+    override fun onIsPlayingChanged(isPlaying: Boolean) {
+        if (!isBuffering) {
+            isPlayerPlaying = isPlaying
+            playerView.keepScreenOn = isPlaying
+            (exoPlay.drawable as Animatable?)?.start()
+            if (!this.isDestroyed) Glide.with(this)
+                .load(if (isPlaying) R.drawable.anim_play_to_pause else R.drawable.anim_pause_to_play).into(exoPlay)
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    @RequiresApi(Build.VERSION_CODES.N)
+    private fun enterPipMode() {
+        if (!pipEnabled) return
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                enterPictureInPictureMode(
+                    PictureInPictureParams
+                        .Builder()
+                        .setAspectRatio(aspectRatio)
+                        .build()
+                )
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+
+                enterPictureInPictureMode()
+            }
+        } catch (e: Exception) {
+            logError(e)
+        }
+    }
+
     public override fun onPause() {
         super.onPause()
         if (Util.SDK_INT <= 23) {
-            player.release()
+            releasePlayer()
         }
     }
 
     public override fun onStop() {
         super.onStop()
         if (Util.SDK_INT > 23) {
-            player.release()
+            releasePlayer()
         }
     }
+
+    override fun onDestroy() {
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        if (isInitialized) {
+            releasePlayer()
+        }
+
+        super.onDestroy()
+        finishAndRemoveTask()
+    }
+
 }
