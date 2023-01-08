@@ -71,6 +71,7 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
     private lateinit var playbackParameters: PlaybackParameters
     private var orientationListener: OrientationEventListener? = null
     private var headers: Map<String, String> = mapOf()
+    private var autoPlay: Boolean = true
     var settings = PlayerSettings()
 
 
@@ -113,6 +114,7 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
         supportActionBar?.hide()
         initializeNetwork(baseContext)
         videoUri = intent.getStringExtra("url") ?: return
+        autoPlay = intent.getBooleanExtra("autoPlay", true)
         if (intent.getSerializableExtra("headers") != null){
             val serializableMap = intent.getSerializableExtra("headers") as SerializableMap
             headers = serializableMap.getMap()
@@ -171,7 +173,7 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
             .setTrackSelector(trackSelector)
             .build()
             .apply {
-                playWhenReady = true
+                playWhenReady = autoPlay
                 this.playbackParameters = this@PlayerActivity.playbackParameters
                 setMediaItem(mediaItem)
                 prepare()
@@ -582,7 +584,7 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
 
 
     override fun onPlaybackStateChanged(playbackState: Int) {
-        if (playbackState == ExoPlayer.STATE_READY) {
+        if (playbackState == ExoPlayer.STATE_READY && autoPlay) {
             player.play()
         }
         isBuffering = playbackState == Player.STATE_BUFFERING

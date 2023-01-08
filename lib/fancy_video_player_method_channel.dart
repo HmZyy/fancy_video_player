@@ -11,9 +11,14 @@ class MethodChannelFancyVideoPlayer extends FancyVideoPlayerPlatform {
 
   @override
   Future<String?> startPlayer(
-      {required String url, Map<String, String>? headers}) async {
-    final result = await methodChannel
-        .invokeMethod<String>('startPlayer', {"url": url, "headers": headers});
+      {required String url,
+      Map<String, String>? headers,
+      bool? autoPlay}) async {
+    final result = await methodChannel.invokeMethod<String>('startPlayer', {
+      "url": url,
+      "headers": headers,
+      "autoPlay": autoPlay,
+    });
     return result;
   }
 }

@@ -33,13 +33,14 @@ class FancyVideoPlayerPlugin: FlutterPlugin, MethodCallHandler {
     if (call.method == "startPlayer") {
       val url = call.argument<String>("url")
       var headers = call.argument<Map<String, String>>("headers")
+      var autoPlay = call.argument<Boolean>("autoPlay")
       if (headers == null) {
         headers = emptyMap()
         Log.e("flutter", "headers is null")
       }
       Log.i("flutter", url ?: "no url")
       if (url != null) {
-        startPlayer(url, headers)
+        startPlayer(url, headers, autoPlay)
         result.success("Launched Success")
       }
       result.error("No Url provided","Failed to launch", "tried to call startPlayer with no url")
@@ -52,12 +53,13 @@ class FancyVideoPlayerPlugin: FlutterPlugin, MethodCallHandler {
     channel.setMethodCallHandler(null)
   }
 
-  private fun startPlayer(url: String, headers: Map<String, String>) {
+  private fun startPlayer(url: String, headers: Map<String, String>, autoPlay: Boolean?) {
     val serializableHeaders = SerializableMap(headers)
     val intent = Intent(context, PlayerActivity::class.java)
     intent.addFlags(FLAG_ACTIVITY_NEW_TASK)
     intent.putExtra("url", url)
     intent.putExtra("headers", serializableHeaders)
+    intent.putExtra("autoPlay", autoPlay)
     context.startActivity(intent)
   }
 }
