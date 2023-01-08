@@ -1,25 +1,31 @@
 package gg.HmZyy
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.Application
 import android.content.Context
 import android.os.*
 import android.provider.Settings
 import android.util.AttributeSet
 import android.view.*
 import android.widget.FrameLayout
+import android.widget.Toast
 import androidx.core.math.MathUtils
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
+import androidx.multidex.MultiDex
+import androidx.multidex.MultiDexApplication
 import com.google.android.exoplayer2.database.StandaloneDatabaseProvider
 import com.google.android.exoplayer2.ui.DefaultTimeBar
 import com.google.android.exoplayer2.upstream.cache.LeastRecentlyUsedCacheEvictor
 import com.google.android.exoplayer2.upstream.cache.SimpleCache
 import com.google.android.material.snackbar.Snackbar
+import gg.HmZyy.fancy_video_player.initializeNetwork
 import java.io.File
 import java.io.Serializable
 import java.lang.reflect.Field
 import java.util.*
 import kotlin.math.log2
+import kotlin.math.max
 import kotlin.math.pow
 
 val defaultHeaders = mapOf(
@@ -31,6 +37,52 @@ class SerializableMap(private val map: Map<String, String>) : Serializable {
         return map
     }
 }
+
+class FTActivityLifecycleCallbacks : Application.ActivityLifecycleCallbacks {
+    var currentActivity: Activity? = null
+    override fun onActivityCreated(p0: Activity, p1: Bundle?) {}
+    override fun onActivityStarted(p0: Activity) {
+        currentActivity = p0
+    }
+
+    override fun onActivityResumed(p0: Activity) {
+        currentActivity = p0
+    }
+
+    override fun onActivityPaused(p0: Activity) {}
+    override fun onActivityStopped(p0: Activity) {}
+    override fun onActivitySaveInstanceState(p0: Activity, p1: Bundle) {}
+    override fun onActivityDestroyed(p0: Activity) {}
+}
+
+
+class App : MultiDexApplication() {
+    override fun attachBaseContext(base: Context?) {
+        super.attachBaseContext(base)
+        MultiDex.install(this)
+    }
+
+    init {
+        instance = this
+    }
+
+    val mFTActivityLifecycleCallbacks = FTActivityLifecycleCallbacks()
+
+    override fun onCreate() {
+        super.onCreate()
+        registerActivityLifecycleCallbacks(mFTActivityLifecycleCallbacks)
+        initializeNetwork(baseContext)
+
+    }
+
+    companion object {
+        private var instance: App? = null
+        fun currentActivity(): Activity? {
+            return instance?.mFTActivityLifecycleCallbacks?.currentActivity
+        }
+    }
+}
+
 
 @SuppressLint("ClickableViewAccessibility")
 class SpinnerNoSwipe : androidx.appcompat.widget.AppCompatSpinner {
@@ -189,6 +241,26 @@ fun logError(e: Exception) {
     e.printStackTrace()
 }
 
+fun currActivity(): Activity? {
+    return App.currentActivity()
+}
+
+fun logger(e: Any?, print: Boolean = true) {
+    if (print)
+        println(e)
+}
+
+fun toast(string: String?, activity: Activity? = null) {
+    if (string != null) {
+        (activity ?: currActivity())?.apply {
+            runOnUiThread {
+                Toast.makeText(this, string, Toast.LENGTH_SHORT).show()
+            }
+        }
+        logger(string)
+    }
+}
+
 fun toastString(s: String?, activity: Activity? = null) {
 }
 
@@ -231,4 +303,14 @@ object VideoCache {
         simpleCache?.release()
         simpleCache = null
     }
+}
+
+fun View.circularReveal(ex: Int, ey: Int, subX: Boolean, time: Long) {
+    ViewAnimationUtils.createCircularReveal(
+        this,
+        if (subX) (ex - x.toInt()) else ex,
+        ey - y.toInt(),
+        0f,
+        max(height, width).toFloat()
+    ).setDuration(time).start()
 }

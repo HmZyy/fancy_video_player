@@ -6,6 +6,7 @@ import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.app.PictureInPictureParams
 import android.content.ActivityNotFoundException
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
@@ -19,9 +20,11 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.support.v4.media.session.MediaSessionCompat
 import android.util.Log
 import android.util.Rational
 import android.view.*
+import android.view.animation.AnimationUtils
 import android.widget.ImageButton
 import android.widget.TextView
 import androidx.annotation.RequiresApi
@@ -31,11 +34,13 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.lifecycleScope
+import androidx.media.session.MediaButtonReceiver
 import com.bumptech.glide.Glide
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.DefaultLoadControl
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector
 import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource
 import com.google.android.exoplayer2.source.DefaultMediaSourceFactory
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
@@ -45,14 +50,18 @@ import com.google.android.exoplayer2.upstream.DataSource
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSource
 import com.google.android.exoplayer2.upstream.HttpDataSource
 import com.google.android.exoplayer2.upstream.cache.CacheDataSource
+import com.google.android.exoplayer2.util.MimeTypes
 import com.google.android.exoplayer2.util.Util
 import com.google.android.material.slider.Slider
 import gg.HmZyy.*
 import gg.HmZyy.fancy_video_player.databinding.ActivityPlayerBinding
+import gg.HmZyy.fancy_video_player.settings.PlayerSettings
+import gg.HmZyy.fancy_video_player.utils.ResettableTimer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.*
+import kotlin.math.max
 import kotlin.math.roundToInt
 
 
@@ -64,10 +73,12 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
     private lateinit var player: ExoPlayer
     private lateinit var binding: ActivityPlayerBinding
     private lateinit var videoUri: String
+    private lateinit var mediaItem: MediaItem
     private lateinit var cacheFactory: CacheDataSource.Factory
     private lateinit var playbackParameters: PlaybackParameters
     private var orientationListener: OrientationEventListener? = null
     private var headers: Map<String, String> = mapOf()
+    var settings = PlayerSettings()
 
 
     // States
@@ -133,6 +144,7 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
     }
 
     private fun initializePlayer(){
+        hideSystemBars()
 
         val simpleCache = VideoCache.getInstance(this)
         val httpClient = okHttpClient.newBuilder().apply {
@@ -156,22 +168,36 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
             setUpstreamDataSourceFactory(dataSourceFactory)
         }
 
+        val builder = MediaItem.Builder().setUri(videoUri)
+        mediaItem = builder.build()
+
         val trackSelector = DefaultTrackSelector(this)
-        val loadControl = DefaultLoadControl()
         player = ExoPlayer.Builder(this)
             .setMediaSourceFactory(DefaultMediaSourceFactory(cacheFactory))
             .setTrackSelector(trackSelector)
             .build()
-        binding.playerView.player = player
-        val mediaItem: MediaItem = MediaItem.fromUri(videoUri)
-//        val mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(uri)
+            .apply {
+                playWhenReady = true
+                this.playbackParameters = this@PlayerActivity.playbackParameters
+                setMediaItem(mediaItem)
+                prepare()
+                seekTo(playbackPosition)
+            }
 
-        // Set the media item to be played.
-        player.setMediaItem(mediaItem)
-        // Prepare the player.
-        player.prepare()
-        // Start the playback.
-        player.play()
+        binding.playerView.player = player
+
+        try {
+            val mediaButtonReceiver = ComponentName(this, MediaButtonReceiver::class.java)
+            MediaSessionCompat(this, "Player", mediaButtonReceiver, null).let { media ->
+                val mediaSessionConnector = MediaSessionConnector(media)
+                mediaSessionConnector.setPlayer(player)
+                media.isActive = true
+            }
+        } catch (e: Exception) {
+            toast(e.toString())
+        }
+
+        player.addListener(this)
         isInitialized = true
     }
 
@@ -273,6 +299,45 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
             onBackPressedDispatcher.onBackPressed()
         }
 
+        val rewindText = playerView.findViewById<TextView>(R.id.exo_fast_rewind_anim)
+        val forwardText = playerView.findViewById<TextView>(R.id.exo_fast_forward_anim)
+        val fastForwardCard = playerView.findViewById<View>(R.id.exo_fast_forward)
+        val fastRewindCard = playerView.findViewById<View>(R.id.exo_fast_rewind)
+
+        //Seeking
+        val seekTimerF = ResettableTimer()
+        val seekTimerR = ResettableTimer()
+        var seekTimesF = 0
+        var seekTimesR = 0
+
+        fun seek(forward: Boolean, event: MotionEvent? = null) {
+            val views = if (forward) {
+                forwardText.text = "+${ settings.seekTime * ++seekTimesF}"
+                handler.post { player.seekTo(player.currentPosition + settings.seekTime * 1000) }
+                fastForwardCard to forwardText
+            } else {
+                rewindText.text = "-${settings.seekTime * ++seekTimesR}"
+                handler.post { player.seekTo(player.currentPosition - settings.seekTime * 1000) }
+                fastRewindCard to rewindText
+            }
+            startDoubleTapped(views.first, views.second, event, forward)
+            if (forward) {
+                seekTimerR.reset(object : TimerTask() {
+                    override fun run() {
+                        stopDoubleTapped(views.first, views.second)
+                        seekTimesF = 0
+                    }
+                }, 850)
+            } else {
+                seekTimerF.reset(object : TimerTask() {
+                    override fun run() {
+                        stopDoubleTapped(views.first, views.second)
+                        seekTimesR = 0
+                    }
+                }, 850)
+            }
+        }
+
         //Player UI Visibility Handler
         val brightnessRunnable = Runnable {
             if (exoBrightnessCont.alpha == 1f)
@@ -298,10 +363,42 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
             }
         })
 
+        val overshoot = AnimationUtils.loadInterpolator(this, R.anim.over_shoot)
+        val controllerDuration = (1f * 200).toLong()
+        fun handleController() {
+            if (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) !isInPictureInPictureMode else true) {
+                if (playerView.isControllerFullyVisible) {
+                    ObjectAnimator.ofFloat(playerView.findViewById(com.google.android.exoplayer2.ui.R.id.exo_controller), "alpha", 1f, 0f)
+                        .setDuration(controllerDuration).start()
+                    ObjectAnimator.ofFloat(playerView.findViewById(R.id.exo_bottom_cont), "translationY", 0f, 128f)
+                        .apply { interpolator = overshoot;duration = controllerDuration;start() }
+                    ObjectAnimator.ofFloat(playerView.findViewById(R.id.exo_timeline_cont), "translationY", 0f, 128f)
+                        .apply { interpolator = overshoot;duration = controllerDuration;start() }
+                    ObjectAnimator.ofFloat(playerView.findViewById(R.id.exo_top_cont), "translationY", 0f, -128f)
+                        .apply { interpolator = overshoot;duration = controllerDuration;start() }
+                    playerView.postDelayed({ playerView.hideController() }, controllerDuration)
+                } else {
+                    playerView.showController()
+                    ObjectAnimator.ofFloat(playerView.findViewById(com.google.android.exoplayer2.ui.R.id.exo_controller), "alpha", 0f, 1f)
+                        .setDuration(controllerDuration).start()
+                    ObjectAnimator.ofFloat(playerView.findViewById(R.id.exo_bottom_cont), "translationY", 128f, 0f)
+                        .apply { interpolator = overshoot;duration = controllerDuration;start() }
+                    ObjectAnimator.ofFloat(playerView.findViewById(R.id.exo_timeline_cont), "translationY", 128f, 0f)
+                        .apply { interpolator = overshoot;duration = controllerDuration;start() }
+                    ObjectAnimator.ofFloat(playerView.findViewById(R.id.exo_top_cont), "translationY", -128f, 0f)
+                        .apply { interpolator = overshoot;duration = controllerDuration;start() }
+                }
+            }
+        }
+
+        playerView.findViewById<View>(R.id.exo_full_area).setOnClickListener {
+            handleController()
+        }
+
         fun doubleTap(forward: Boolean, event: MotionEvent) {
-//            if (!locked && isInitialized && settings.doubleTap) {
-//                seek(forward, event)
-//            }
+            if (!locked && isInitialized) {
+                seek(forward, event)
+            }
         }
 
         //Brightness
@@ -368,7 +465,7 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
                 }
             }
 
-//            override fun onSingleClick(event: MotionEvent) = handleController()
+            override fun onSingleClick(event: MotionEvent) = handleController()
         })
         val rewindArea = playerView.findViewById<View>(R.id.exo_rewind_area)
         rewindArea.isClickable = true
@@ -394,7 +491,7 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
                 }
             }
 
-//            override fun onSingleClick(event: MotionEvent) = handleController()
+            override fun onSingleClick(event: MotionEvent) = handleController()
         })
         val forwardArea = playerView.findViewById<View>(R.id.exo_forward_area)
         forwardArea.isClickable = true
@@ -430,9 +527,10 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
             )
         }
 
+
         //Cast
         playerView.findViewById<ImageButton>(R.id.exo_cast).apply {
-            visibility = View.VISIBLE
+//            visibility = View.VISIBLE
             setSafeOnClickListener {
                 cast()
             }
@@ -503,6 +601,42 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
             (exoPlay.drawable as Animatable?)?.start()
             if (!this.isDestroyed) Glide.with(this)
                 .load(if (isPlaying) R.drawable.anim_play_to_pause else R.drawable.anim_pause_to_play).into(exoPlay)
+        }
+    }
+
+    override fun onPlayerError(error: PlaybackException) {
+        when (error.errorCode) {
+            PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS, PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
+            -> {
+                toast("Source Exception : ${error.message}")
+                isPlayerPlaying = true
+            }
+            else
+            -> toast("Player Error ${error.errorCode} (${error.errorCodeName}) : ${error.message}")
+        }
+    }
+
+    //Double Tap Animation
+    private fun startDoubleTapped(v: View, text: TextView, event: MotionEvent? = null, forward: Boolean) {
+        ObjectAnimator.ofFloat(text, "alpha", 1f, 1f).setDuration(600).start()
+        ObjectAnimator.ofFloat(text, "alpha", 0f, 1f).setDuration(150).start()
+
+        (text.compoundDrawables[1] as Animatable).apply {
+            if (!isRunning) start()
+        }
+
+        if (event != null) {
+            playerView.hideController()
+            v.circularReveal(event.x.toInt(), event.y.toInt(), !forward, 800)
+            ObjectAnimator.ofFloat(v, "alpha", 1f, 1f).setDuration(800).start()
+            ObjectAnimator.ofFloat(v, "alpha", 0f, 1f).setDuration(300).start()
+        }
+    }
+
+    private fun stopDoubleTapped(v: View, text: TextView) {
+        handler.post {
+            ObjectAnimator.ofFloat(v, "alpha", v.alpha, 0f).setDuration(150).start()
+            ObjectAnimator.ofFloat(text, "alpha", 1f, 0f).setDuration(150).start()
         }
     }
 
