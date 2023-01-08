@@ -17,3 +17,7 @@
 ## 0.0.4
 
 - fixed headers
+
+## 0.0.5
+
+- added autoplay parameter (default: true)
