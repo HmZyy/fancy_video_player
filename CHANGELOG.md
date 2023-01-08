@@ -8,3 +8,8 @@
 - added a askip +85 sec button
 - added a fullscreen button toggle
 - added headers
+
+## 0.0.3
+
+- disabled casting
+- added double tap to seek -+ 10 seconds
