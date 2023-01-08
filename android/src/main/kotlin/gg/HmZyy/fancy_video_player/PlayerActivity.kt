@@ -1,7 +1,6 @@
 package gg.HmZyy.fancy_video_player
 
 import android.animation.ObjectAnimator
-import androidx.appcompat.app.AppCompatActivity
 import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.app.PictureInPictureParams
@@ -10,7 +9,6 @@ import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
-import android.content.res.Configuration
 import android.graphics.drawable.Animatable
 import android.hardware.SensorManager
 import android.media.AudioManager
@@ -27,19 +25,17 @@ import android.view.*
 import android.view.animation.AnimationUtils
 import android.widget.ImageButton
 import android.widget.TextView
+import android.widget.Toast
 import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.math.MathUtils
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.lifecycleScope
 import androidx.media.session.MediaButtonReceiver
 import com.bumptech.glide.Glide
 import com.google.android.exoplayer2.*
-import com.google.android.exoplayer2.DefaultLoadControl
-import com.google.android.exoplayer2.ExoPlayer
-import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector
 import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource
 import com.google.android.exoplayer2.source.DefaultMediaSourceFactory
@@ -47,21 +43,18 @@ import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import com.google.android.exoplayer2.ui.StyledPlayerView
 import com.google.android.exoplayer2.upstream.DataSource
-import com.google.android.exoplayer2.upstream.DefaultHttpDataSource
 import com.google.android.exoplayer2.upstream.HttpDataSource
 import com.google.android.exoplayer2.upstream.cache.CacheDataSource
-import com.google.android.exoplayer2.util.MimeTypes
 import com.google.android.exoplayer2.util.Util
 import com.google.android.material.slider.Slider
 import gg.HmZyy.*
 import gg.HmZyy.fancy_video_player.databinding.ActivityPlayerBinding
 import gg.HmZyy.fancy_video_player.settings.PlayerSettings
 import gg.HmZyy.fancy_video_player.utils.ResettableTimer
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
 import java.util.*
-import kotlin.math.max
 import kotlin.math.roundToInt
 
 
@@ -146,26 +139,24 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
     private fun initializePlayer(){
         hideSystemBars()
 
-        val simpleCache = VideoCache.getInstance(this)
         val httpClient = okHttpClient.newBuilder().apply {
             ignoreAllSSLErrors()
             followRedirects(true)
             followSslRedirects(true)
         }.build()
+
         val dataSourceFactory = DataSource.Factory {
             val dataSource: HttpDataSource = OkHttpDataSource.Factory(httpClient).createDataSource()
-            defaultHeaders.forEach {
-                dataSource.setRequestProperty(it.key, it.value)
-            }
             headers.forEach {
                 dataSource.setRequestProperty(it.key, it.value)
             }
             dataSource
         }
 
-        cacheFactory = CacheDataSource.Factory().apply {
-            setCache(simpleCache)
-            setUpstreamDataSourceFactory(dataSourceFactory)
+        Log.i("flutter", "headers" + headers.toString())
+        headers.forEach {
+            Log.i("flutter", "key: " + it.key)
+            Log.i("flutter", "value: " + it.value)
         }
 
         val builder = MediaItem.Builder().setUri(videoUri)
@@ -173,7 +164,10 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
 
         val trackSelector = DefaultTrackSelector(this)
         player = ExoPlayer.Builder(this)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(cacheFactory))
+            .setMediaSourceFactory(
+                DefaultMediaSourceFactory(this)
+                    .setDataSourceFactory(dataSourceFactory)
+            )
             .setTrackSelector(trackSelector)
             .build()
             .apply {
@@ -541,7 +535,7 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
                 arrayOf(0.25f, 0.33f, 0.5f, 0.66f, 0.75f, 1f, 1.25f, 1.33f, 1.5f, 1.66f, 1.75f, 2f)
 
         val speedsName = speeds.map { "${it}x" }.toTypedArray()
-        var curSpeed = 1
+        var curSpeed = settings.defaultSpeed
 
         playbackParameters = PlaybackParameters(speeds[curSpeed])
         var speed: Float
@@ -565,6 +559,7 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
         isPlayerPlaying = player.playWhenReady
         playbackPosition = player.currentPosition
         player.release()
+        VideoCache.release()
     }
 
     @SuppressLint("InlinedApi")
@@ -605,14 +600,15 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
     }
 
     override fun onPlayerError(error: PlaybackException) {
+//        onBackPressedDispatcher.onBackPressed()
         when (error.errorCode) {
             PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS, PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
             -> {
-                toast("Source Exception : ${error.message}")
+                showToast("Source Exception : ${error.message}")
                 isPlayerPlaying = true
             }
             else
-            -> toast("Player Error ${error.errorCode} (${error.errorCodeName}) : ${error.message}")
+            -> showToast("Player Error ${error.errorCode} (${error.errorCodeName}) : ${error.message}")
         }
     }
 
@@ -639,6 +635,12 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
             ObjectAnimator.ofFloat(text, "alpha", 1f, 0f).setDuration(150).start()
         }
     }
+
+    private fun showToast(message: String) {
+        val toast = Toast.makeText(this, message, Toast.LENGTH_SHORT)
+        toast.show()
+    }
+
 
     // Cast
     private fun cast() {

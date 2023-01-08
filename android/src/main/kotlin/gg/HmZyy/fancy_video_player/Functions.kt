@@ -3,6 +3,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Application
 import android.content.Context
+import android.content.res.Resources
 import android.os.*
 import android.provider.Settings
 import android.util.AttributeSet
@@ -28,9 +29,9 @@ import kotlin.math.log2
 import kotlin.math.max
 import kotlin.math.pow
 
-val defaultHeaders = mapOf(
-    "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36"
-)
+var navBarHeight = 0
+val Int.dp: Float get() = (this / Resources.getSystem().displayMetrics.density)
+val Float.px: Int get() = (this * Resources.getSystem().displayMetrics.density).toInt()
 
 class SerializableMap(private val map: Map<String, String>) : Serializable {
     fun getMap(): Map<String, String> {
@@ -262,6 +263,27 @@ fun toast(string: String?, activity: Activity? = null) {
 }
 
 fun toastString(s: String?, activity: Activity? = null) {
+    if (s != null) {
+        (activity ?: currActivity())?.apply {
+            runOnUiThread {
+                val snackBar = Snackbar.make(window.decorView.findViewById(android.R.id.content), s, Snackbar.LENGTH_LONG)
+                snackBar.view.apply {
+                    updateLayoutParams<FrameLayout.LayoutParams> {
+                        gravity = (Gravity.CENTER_HORIZONTAL or Gravity.BOTTOM)
+                        width = ViewGroup.LayoutParams.WRAP_CONTENT
+                    }
+                    translationY = -(navBarHeight.dp + 32f)
+                    translationZ = 32f
+                    updatePadding(16f.px, right = 16f.px)
+                    setOnClickListener {
+                        snackBar.dismiss()
+                    }
+                }
+                snackBar.show()
+            }
+        }
+        logger(s)
+    }
 }
 
 class SafeClickListener(
