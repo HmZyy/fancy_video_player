@@ -13,3 +13,7 @@
 
 - disabled casting
 - added double tap to seek -+ 10 seconds
+
+## 0.0.4
+
+- fixed headers
