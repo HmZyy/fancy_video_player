@@ -67,7 +67,6 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
     private lateinit var binding: ActivityPlayerBinding
     private lateinit var videoUri: String
     private lateinit var mediaItem: MediaItem
-    private lateinit var cacheFactory: CacheDataSource.Factory
     private lateinit var playbackParameters: PlaybackParameters
     private var orientationListener: OrientationEventListener? = null
     private var headers: Map<String, String> = mapOf()
@@ -153,12 +152,6 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
                 dataSource.setRequestProperty(it.key, it.value)
             }
             dataSource
-        }
-
-        Log.i("flutter", "headers" + headers.toString())
-        headers.forEach {
-            Log.i("flutter", "key: " + it.key)
-            Log.i("flutter", "value: " + it.value)
         }
 
         val builder = MediaItem.Builder().setUri(videoUri)
