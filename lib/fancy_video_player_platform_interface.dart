@@ -45,4 +45,9 @@ abstract class FancyVideoPlayerPlatform extends PlatformInterface {
   void setOnBackPressed(Function callback) {
     throw UnimplementedError('setOnBackPressed() has not been implemented.');
   }
+
+  void setOnEnterPictureInPicture(Function callback) {
+    throw UnimplementedError(
+        'setOnEnterPictureInPicture() has not been implemented.');
+  }
 }

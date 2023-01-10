@@ -688,6 +688,7 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
     @RequiresApi(Build.VERSION_CODES.N)
     private fun enterPipMode() {
         if (!pipEnabled) return
+        FancyVideoPlayerPlugin.onEnterPictureInPicture()
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 enterPictureInPictureMode(

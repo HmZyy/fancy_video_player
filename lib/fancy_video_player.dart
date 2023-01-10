@@ -28,4 +28,8 @@ class FancyVideoPlayer {
   void setOnBackPressed(Function callback) {
     FancyVideoPlayerPlatform.instance.setOnBackPressed(callback);
   }
+
+  void setOnEnterPictureInPicture(Function callback) {
+    FancyVideoPlayerPlatform.instance.setOnEnterPictureInPicture(callback);
+  }
 }

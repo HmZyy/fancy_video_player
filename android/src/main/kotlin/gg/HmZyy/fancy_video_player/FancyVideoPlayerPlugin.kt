@@ -83,5 +83,10 @@ class FancyVideoPlayerPlugin: FlutterPlugin, MethodCallHandler {
       Log.i("flutter", "calling onBackPressed from FancyVideoPlayerPlugin")
       channel.invokeMethod("onBackPressed", true)
     }
+
+    fun onEnterPictureInPicture() {
+      Log.i("flutter", "calling onEnterPictureInPicture from FancyVideoPlayerPlugin")
+      channel.invokeMethod("onEnterPictureInPicture", true)
+    }
   }
 }

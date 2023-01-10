@@ -9,6 +9,7 @@ class MethodChannelFancyVideoPlayer extends FancyVideoPlayerPlatform {
   Function? errorCallback;
   Function? onErrorBoxClicked;
   Function? onBackPressed;
+  Function? onEnterPictureInPicture;
 
   @visibleForTesting
   final methodChannel = const MethodChannel('fancy_video_player');
@@ -47,6 +48,11 @@ class MethodChannelFancyVideoPlayer extends FancyVideoPlayerPlatform {
     onBackPressed = callback;
   }
 
+  @override
+  void setOnEnterPictureInPicture(Function callback) {
+    onEnterPictureInPicture = callback;
+  }
+
   Future<dynamic> _handleMethod(MethodCall call) async {
     switch (call.method) {
       case "onPlayerError":
@@ -58,6 +64,9 @@ class MethodChannelFancyVideoPlayer extends FancyVideoPlayerPlatform {
         break;
       case "onBackPressed":
         onBackPressed!();
+        break;
+      case "onEnterPictureInPicture":
+        onEnterPictureInPicture!();
         break;
       default:
         print("Unknown method: ${call.method}");
