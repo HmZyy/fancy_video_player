@@ -35,3 +35,7 @@
 ## 0.0.8
 
 - added onEnterPictureOnPicture callback
+
+## 0.0.9
+
+- upgraded to kotlin 1.8.0
