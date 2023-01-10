@@ -21,3 +21,8 @@
 ## 0.0.5
 
 - added autoplay parameter (default: true)
+
+## 0.0.6
+
+- added closeOnError (default: false)
+- added setErrorCallback
