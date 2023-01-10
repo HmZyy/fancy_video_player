@@ -26,3 +26,8 @@
 
 - added closeOnError (default: false)
 - added setErrorCallback
+
+## 0.0.6
+
+- added showErrorBox (default: false)
+- added onBackPressed callback
