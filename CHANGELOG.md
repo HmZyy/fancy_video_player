@@ -31,3 +31,7 @@
 
 - added showErrorBox (default: false)
 - added onBackPressed callback
+
+## 0.0.8
+
+- added onEnterPictureOnPicture callback
