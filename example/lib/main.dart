@@ -74,7 +74,11 @@ class _ExampleState extends State<Example> {
 
     videoPlayer.startPlayer(
       url:
-          "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4s",
+          "https://wwwx14.gofcdn.com/videos/hls/_GRiofpgzOblIDL8EU-Lfg/1673387737/197443/ea8006e702ad68a125cb3b28a2bfb3fb/ep.1.1673285640.1080.m3u8",
+      headers: {
+        "Referer":
+            "https://gogohd.pro/streaming.php?id=MTk3NDQz&title=Vinland+Saga+Season+2+Episode+1"
+      },
       showErrorBox: true,
     );
   }
