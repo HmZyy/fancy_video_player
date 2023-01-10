@@ -71,6 +71,7 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
     private var orientationListener: OrientationEventListener? = null
     private var headers: Map<String, String> = mapOf()
     private var autoPlay: Boolean = true
+    private var closeOnError: Boolean = false
     var settings = PlayerSettings()
 
 
@@ -114,6 +115,7 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
         initializeNetwork(baseContext)
         videoUri = intent.getStringExtra("url") ?: return
         autoPlay = intent.getBooleanExtra("autoPlay", true)
+        closeOnError = intent.getBooleanExtra("closeOnError", false)
         if (intent.getSerializableExtra("headers") != null){
             val serializableMap = intent.getSerializableExtra("headers") as SerializableMap
             headers = serializableMap.getMap()
@@ -595,7 +597,10 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
     }
 
     override fun onPlayerError(error: PlaybackException) {
-//        onBackPressedDispatcher.onBackPressed()
+        FancyVideoPlayerPlugin.onPlayerError(error)
+        if (closeOnError) {
+            onBackPressedDispatcher.onBackPressed()
+        }
         when (error.errorCode) {
             PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS, PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
             -> {

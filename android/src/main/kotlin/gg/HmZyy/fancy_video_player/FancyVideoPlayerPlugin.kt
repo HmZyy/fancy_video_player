@@ -6,6 +6,7 @@ import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import android.os.Bundle
 import android.util.Log
 import androidx.annotation.NonNull
+import com.google.android.exoplayer2.PlaybackException
 import gg.HmZyy.SerializableMap
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -20,7 +21,6 @@ class FancyVideoPlayerPlugin: FlutterPlugin, MethodCallHandler {
   ///
   /// This local reference serves to register the plugin with the Flutter Engine and unregister it
   /// when the Flutter Engine is detached from the Activity
-  private lateinit var channel : MethodChannel
   private lateinit var context: Context
 
   override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
@@ -34,13 +34,14 @@ class FancyVideoPlayerPlugin: FlutterPlugin, MethodCallHandler {
       val url = call.argument<String>("url")
       var headers = call.argument<Map<String, String>>("headers")
       var autoPlay = call.argument<Boolean>("autoPlay")
+      var closeOnError = call.argument<Boolean>("closeOnError")
       if (headers == null) {
         headers = emptyMap()
         Log.e("flutter", "headers is null")
       }
       Log.i("flutter", url ?: "no url")
       if (url != null) {
-        startPlayer(url, headers, autoPlay)
+        startPlayer(url, headers, autoPlay, closeOnError)
         result.success("Launched Success")
       }
       result.error("No Url provided","Failed to launch", "tried to call startPlayer with no url")
@@ -53,13 +54,22 @@ class FancyVideoPlayerPlugin: FlutterPlugin, MethodCallHandler {
     channel.setMethodCallHandler(null)
   }
 
-  private fun startPlayer(url: String, headers: Map<String, String>, autoPlay: Boolean?) {
+  private fun startPlayer(url: String, headers: Map<String, String>, autoPlay: Boolean?, closeOnError: Boolean?) {
     val serializableHeaders = SerializableMap(headers)
     val intent = Intent(context, PlayerActivity::class.java)
     intent.addFlags(FLAG_ACTIVITY_NEW_TASK)
     intent.putExtra("url", url)
     intent.putExtra("headers", serializableHeaders)
     intent.putExtra("autoPlay", autoPlay)
+    intent.putExtra("closeOnError", closeOnError)
     context.startActivity(intent)
+  }
+
+  companion object {
+    private lateinit var channel : MethodChannel
+    fun onPlayerError(error: PlaybackException) {
+      Log.i("flutter", "calling onPlayerError from FancyVideoPlayerPlugin")
+      channel.invokeMethod("onPlayerError", error.errorCode)
+    }
   }
 }
