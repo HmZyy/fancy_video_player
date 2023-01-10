@@ -28,11 +28,21 @@ abstract class FancyVideoPlayerPlatform extends PlatformInterface {
     Map<String, String>? headers,
     bool? autoPlay,
     bool closeOnError = false,
+    bool showErrorBox = false,
   }) {
     throw UnimplementedError('startPlayer() has not been implemented.');
   }
 
   void setErrorCallback(Function callback) {
     throw UnimplementedError('setErrorCallback() has not been implemented.');
+  }
+
+  void setOnErrorBoxClicked(Function callback) {
+    throw UnimplementedError(
+        'setOnErrorBoxClicked() has not been implemented.');
+  }
+
+  void setOnBackPressed(Function callback) {
+    throw UnimplementedError('setOnBackPressed() has not been implemented.');
   }
 }

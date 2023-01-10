@@ -6,6 +6,7 @@ import android.app.AlertDialog
 import android.app.PictureInPictureParams
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
@@ -26,6 +27,7 @@ import android.view.animation.AnimationUtils
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.math.MathUtils
@@ -44,7 +46,6 @@ import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import com.google.android.exoplayer2.ui.StyledPlayerView
 import com.google.android.exoplayer2.upstream.DataSource
 import com.google.android.exoplayer2.upstream.HttpDataSource
-import com.google.android.exoplayer2.upstream.cache.CacheDataSource
 import com.google.android.exoplayer2.util.Util
 import com.google.android.material.slider.Slider
 import gg.HmZyy.*
@@ -53,14 +54,12 @@ import gg.HmZyy.fancy_video_player.settings.PlayerSettings
 import gg.HmZyy.fancy_video_player.utils.ResettableTimer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import okhttp3.OkHttpClient
 import java.util.*
 import kotlin.math.roundToInt
 
 
 /**
- * An example full-screen activity that shows and hides the system UI (i.e.
- * status bar and navigation/system bar) with user interaction.
+ * a FullScreen Video Player Based on ExoPlayer
  */
 class PlayerActivity : AppCompatActivity(), Player.Listener {
     private lateinit var player: ExoPlayer
@@ -72,6 +71,7 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
     private var headers: Map<String, String> = mapOf()
     private var autoPlay: Boolean = true
     private var closeOnError: Boolean = false
+    private var showErrorBox: Boolean = false
     var settings = PlayerSettings()
 
 
@@ -116,10 +116,17 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
         videoUri = intent.getStringExtra("url") ?: return
         autoPlay = intent.getBooleanExtra("autoPlay", true)
         closeOnError = intent.getBooleanExtra("closeOnError", false)
+        showErrorBox = intent.getBooleanExtra("showErrorBox", false)
         if (intent.getSerializableExtra("headers") != null){
             val serializableMap = intent.getSerializableExtra("headers") as SerializableMap
             headers = serializableMap.getMap()
         }
+        onBackPressedDispatcher.addCallback(this, object: OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                FancyVideoPlayerPlugin.onBackPressed()
+                finish()
+            }
+        })
         setupPlayer()
         hideSystemBars()
     }
@@ -558,6 +565,17 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
         player.release()
         VideoCache.release()
     }
+    private fun showAlertDialog(context: Context, message: String) {
+        val builder = AlertDialog.Builder(context)
+        builder.setTitle("Error")
+        builder.setMessage(message)
+        builder.setPositiveButton("Continue with WebView") { dialog, _ ->
+            FancyVideoPlayerPlugin.onErrorBoxClicked()
+            onBackPressedDispatcher.onBackPressed()
+        }
+        val alertDialog = builder.create()
+        alertDialog.show()
+    }
 
     @SuppressLint("InlinedApi")
     private fun hideSystemUi() {
@@ -598,9 +616,10 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
 
     override fun onPlayerError(error: PlaybackException) {
         FancyVideoPlayerPlugin.onPlayerError(error)
-        if (closeOnError) {
+        if (showErrorBox)
+            showAlertDialog(this, "There has been an error: ${error.message}")
+        if (closeOnError)
             onBackPressedDispatcher.onBackPressed()
-        }
         when (error.errorCode) {
             PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS, PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
             -> {

@@ -1,5 +1,6 @@
 import 'package:fancy_video_player/fancy_video_player.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 void main() => runApp(const MyApp());
 
@@ -51,10 +52,30 @@ class _ExampleState extends State<Example> {
       );
     });
 
+    videoPlayer.setOnErrorBoxClicked(() {
+      print("Error box clicked");
+      // SystemNavigator.pop();
+
+      // Navigator.push(
+      //   context,
+      //   MaterialPageRoute(
+      //     builder: (context) => Scaffold(
+      //       appBar: AppBar(
+      //         title: Text("another backup page"),
+      //       ),
+      //     ),
+      //   ),
+      // );
+    });
+
+    videoPlayer.setOnBackPressed(() {
+      SystemNavigator.pop();
+    });
+
     videoPlayer.startPlayer(
       url:
           "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4s",
-      closeOnError: true,
+      showErrorBox: true,
     );
   }
 }

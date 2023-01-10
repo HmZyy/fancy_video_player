@@ -35,13 +35,14 @@ class FancyVideoPlayerPlugin: FlutterPlugin, MethodCallHandler {
       var headers = call.argument<Map<String, String>>("headers")
       var autoPlay = call.argument<Boolean>("autoPlay")
       var closeOnError = call.argument<Boolean>("closeOnError")
+      var showErrorBox = call.argument<Boolean>("showErrorBox")
       if (headers == null) {
         headers = emptyMap()
         Log.e("flutter", "headers is null")
       }
       Log.i("flutter", url ?: "no url")
       if (url != null) {
-        startPlayer(url, headers, autoPlay, closeOnError)
+        startPlayer(url, headers, autoPlay, closeOnError, showErrorBox)
         result.success("Launched Success")
       }
       result.error("No Url provided","Failed to launch", "tried to call startPlayer with no url")
@@ -54,7 +55,7 @@ class FancyVideoPlayerPlugin: FlutterPlugin, MethodCallHandler {
     channel.setMethodCallHandler(null)
   }
 
-  private fun startPlayer(url: String, headers: Map<String, String>, autoPlay: Boolean?, closeOnError: Boolean?) {
+  private fun startPlayer(url: String, headers: Map<String, String>, autoPlay: Boolean?, closeOnError: Boolean?, showErrorBox: Boolean?) {
     val serializableHeaders = SerializableMap(headers)
     val intent = Intent(context, PlayerActivity::class.java)
     intent.addFlags(FLAG_ACTIVITY_NEW_TASK)
@@ -62,6 +63,7 @@ class FancyVideoPlayerPlugin: FlutterPlugin, MethodCallHandler {
     intent.putExtra("headers", serializableHeaders)
     intent.putExtra("autoPlay", autoPlay)
     intent.putExtra("closeOnError", closeOnError)
+    intent.putExtra("showErrorBox", showErrorBox)
     context.startActivity(intent)
   }
 
@@ -70,6 +72,16 @@ class FancyVideoPlayerPlugin: FlutterPlugin, MethodCallHandler {
     fun onPlayerError(error: PlaybackException) {
       Log.i("flutter", "calling onPlayerError from FancyVideoPlayerPlugin")
       channel.invokeMethod("onPlayerError", error.errorCode)
+    }
+
+    fun onErrorBoxClicked() {
+      Log.i("flutter", "calling onErrorBoxClicked from FancyVideoPlayerPlugin")
+      channel.invokeMethod("onErrorBoxClicked", true)
+    }
+
+    fun onBackPressed() {
+      Log.i("flutter", "calling onBackPressed from FancyVideoPlayerPlugin")
+      channel.invokeMethod("onBackPressed", true)
     }
   }
 }
