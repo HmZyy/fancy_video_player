@@ -46,6 +46,7 @@ import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import com.google.android.exoplayer2.ui.StyledPlayerView
 import com.google.android.exoplayer2.upstream.DataSource
 import com.google.android.exoplayer2.upstream.HttpDataSource
+import com.google.android.exoplayer2.util.MimeTypes
 import com.google.android.exoplayer2.util.Util
 import com.google.android.material.slider.Slider
 import gg.HmZyy.*
@@ -67,6 +68,7 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
     private lateinit var videoUri: String
     private lateinit var mediaItem: MediaItem
     private lateinit var playbackParameters: PlaybackParameters
+    private var subtitles: Array<String> = arrayOf()
     private var orientationListener: OrientationEventListener? = null
     private var headers: Map<String, String> = mapOf()
     private var autoPlay: Boolean = true
@@ -98,6 +100,7 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
     private lateinit var exoScreen: ImageButton
     private lateinit var exoSpeed: ImageButton
     private lateinit var exoRotate: ImageButton
+    private lateinit var exoSubtitle: ImageButton
 
     // Handlers
     private val handler = Handler(Looper.getMainLooper())
@@ -121,6 +124,9 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
             val serializableMap = intent.getSerializableExtra("headers") as SerializableMap
             headers = serializableMap.getMap()
         }
+
+        subtitles += "https://cc.zorores.com/5c/c0/5cc0d2efb436af0abd5e985cc554ca0f/ara-6.vtt"
+
         onBackPressedDispatcher.addCallback(this, object: OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 FancyVideoPlayerPlugin.onBackPressed()
@@ -164,6 +170,16 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
         }
 
         val builder = MediaItem.Builder().setUri(videoUri)
+
+        subtitles += "https://cc.zorores.com/5c/c0/5cc0d2efb436af0abd5e985cc554ca0f/fre-7.vtt"
+        var sub: MediaItem.SubtitleConfiguration? = null
+        sub = MediaItem.SubtitleConfiguration
+            .Builder(Uri.parse(subtitles[0]))
+            .setSelectionFlags(C.SELECTION_FLAG_FORCED)
+            .setMimeType(MimeTypes.TEXT_VTT)
+            .build()
+        if (sub != null) builder.setSubtitleConfigurations(mutableListOf(sub))
+        
         mediaItem = builder.build()
 
         val trackSelector = DefaultTrackSelector(this)
@@ -211,6 +227,16 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
         exoScreen = playerView.findViewById(R.id.exo_screen)
         exoSpeed = playerView.findViewById(R.id.exo_playback_speed)
         exoRotate = playerView.findViewById(R.id.exo_rotate)
+        exoSubtitle = playerView.findViewById(R.id.exo_sub)
+
+
+
+
+        //Subtitles
+
+        exoSubtitle.visibility = if (subtitles.isNotEmpty()) View.VISIBLE else View.GONE
+        exoSubtitle.setOnClickListener {
+        }
 
 
         //Play Pause
