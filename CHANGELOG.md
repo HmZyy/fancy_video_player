@@ -39,3 +39,7 @@
 ## 0.0.9
 
 - upgraded to kotlin 1.8.0
+
+## 0.0.10
+
+- added subtitle support
