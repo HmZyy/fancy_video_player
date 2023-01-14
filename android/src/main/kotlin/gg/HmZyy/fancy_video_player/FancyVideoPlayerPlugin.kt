@@ -42,13 +42,10 @@ class FancyVideoPlayerPlugin: FlutterPlugin, MethodCallHandler {
       var showErrorBox = call.argument<Boolean>("showErrorBox")
       val subtitlesRaw = call.argument<Serializable>("subtitles")
       var subtitles: Array<Subtitle> = arrayOf()
-      if (subtitlesRaw != null) {
-        Log.i("flutter", "subtitles are : $subtitlesRaw")
-        val jsonArr = JSONArray(subtitlesRaw.toString())
-        for (i in 0 until jsonArr.length()) {
-          var sub = jsonArr.getJSONObject(i)
-          subtitles += Subtitle(sub.getString("url"), sub.getString("label"))
-        }
+      val jsonArr = JSONArray(subtitlesRaw.toString())
+      for (i in 0 until jsonArr.length()) {
+        var sub = jsonArr.getJSONObject(i)
+        subtitles += Subtitle(sub.getString("url"), sub.getString("label"))
       }
       if (headers == null) {
         headers = emptyMap()

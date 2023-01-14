@@ -32,7 +32,7 @@ class MethodChannelFancyVideoPlayer extends FancyVideoPlayerPlatform {
       "autoPlay": autoPlay,
       "closeOnError": closeOnError,
       "showErrorBox": showErrorBox,
-      "subtitles": jsonEncode(subtitles)
+      "subtitles": subtitles == null ? "[]" : jsonEncode(subtitles)
     });
     return result;
   }
