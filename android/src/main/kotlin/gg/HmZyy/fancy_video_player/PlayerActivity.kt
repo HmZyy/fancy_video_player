@@ -53,6 +53,7 @@ import gg.HmZyy.*
 import gg.HmZyy.fancy_video_player.databinding.ActivityPlayerBinding
 import gg.HmZyy.fancy_video_player.settings.PlayerSettings
 import gg.HmZyy.fancy_video_player.utils.ResettableTimer
+import gg.HmZyy.fancy_video_player.utils.Subtitle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.*
@@ -68,7 +69,7 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
     private lateinit var videoUri: String
     private lateinit var mediaItem: MediaItem
     private lateinit var playbackParameters: PlaybackParameters
-    private var subtitles: Array<String> = arrayOf()
+    private var subtitles: Array<Subtitle> = arrayOf()
     private var orientationListener: OrientationEventListener? = null
     private var headers: Map<String, String> = mapOf()
     private var autoPlay: Boolean = true
@@ -125,7 +126,7 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
             headers = serializableMap.getMap()
         }
 
-        subtitles += "https://cc.zorores.com/5c/c0/5cc0d2efb436af0abd5e985cc554ca0f/ara-6.vtt"
+        subtitles = intent.getSerializableExtra("subtitles") as Array<Subtitle>
 
         onBackPressedDispatcher.addCallback(this, object: OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -171,15 +172,16 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
 
         val builder = MediaItem.Builder().setUri(videoUri)
 
-        subtitles += "https://cc.zorores.com/5c/c0/5cc0d2efb436af0abd5e985cc554ca0f/fre-7.vtt"
-        var sub: MediaItem.SubtitleConfiguration? = null
-        sub = MediaItem.SubtitleConfiguration
-            .Builder(Uri.parse(subtitles[0]))
-            .setSelectionFlags(C.SELECTION_FLAG_FORCED)
-            .setMimeType(MimeTypes.TEXT_VTT)
-            .build()
-        if (sub != null) builder.setSubtitleConfigurations(mutableListOf(sub))
-        
+        if (subtitles.isNotEmpty()){
+            var sub: MediaItem.SubtitleConfiguration? = null
+            sub = MediaItem.SubtitleConfiguration
+                .Builder(Uri.parse(subtitles[0].url))
+                .setSelectionFlags(C.SELECTION_FLAG_FORCED)
+                .setMimeType(MimeTypes.TEXT_VTT)
+                .build()
+            if (sub != null) builder.setSubtitleConfigurations(mutableListOf(sub))
+        }
+
         mediaItem = builder.build()
 
         val trackSelector = DefaultTrackSelector(this)
@@ -233,9 +235,33 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
 
 
         //Subtitles
-
+        val subtitleDialog = AlertDialog.Builder(this, R.style.DialogTheme).setTitle("Subtitles")
+        val subtitleLabels = subtitles.map { "${it.label}" }.toTypedArray()
+        var selectedSubtitleIndex = 0
         exoSubtitle.visibility = if (subtitles.isNotEmpty()) View.VISIBLE else View.GONE
         exoSubtitle.setOnClickListener {
+            subtitleDialog.setSingleChoiceItems(subtitleLabels, selectedSubtitleIndex) { dialog, i ->
+                if (isInitialized) {
+                    val currentPosition = player.currentPosition
+                    val selectedSubtitle = subtitles[i]
+                    selectedSubtitleIndex = i
+                    val builder = MediaItem.Builder().setUri(videoUri)
+                    if (subtitles.isNotEmpty()){
+                        var sub: MediaItem.SubtitleConfiguration? = null
+                        sub = MediaItem.SubtitleConfiguration
+                            .Builder(Uri.parse(selectedSubtitle.url))
+                            .setSelectionFlags(C.SELECTION_FLAG_FORCED)
+                            .setMimeType(MimeTypes.TEXT_VTT)
+                            .build()
+                        if (sub != null) builder.setSubtitleConfigurations(mutableListOf(sub))
+                    }
+                    mediaItem = builder.build()
+                    player.setMediaItem(mediaItem)
+                    player.seekTo(currentPosition)
+                    dialog.dismiss()
+                    hideSystemBars()
+                }
+            }.show()
         }
 
 
@@ -591,6 +617,7 @@ class PlayerActivity : AppCompatActivity(), Player.Listener {
         player.release()
         VideoCache.release()
     }
+
     private fun showAlertDialog(context: Context, message: String) {
         val builder = AlertDialog.Builder(context)
         builder.setTitle("Error")

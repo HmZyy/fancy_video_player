@@ -1,6 +1,6 @@
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-
 import 'fancy_video_player_method_channel.dart';
+import 'package:fancy_video_player/models/Subtitle.dart';
 
 abstract class FancyVideoPlayerPlatform extends PlatformInterface {
   /// Constructs a FancyVideoPlayerPlatform.
@@ -26,9 +26,10 @@ abstract class FancyVideoPlayerPlatform extends PlatformInterface {
   Future<String?> startPlayer({
     required String url,
     Map<String, String>? headers,
-    bool? autoPlay,
+    bool autoPlay = true,
     bool closeOnError = false,
     bool showErrorBox = false,
+    List<Subtitle>? subtitles,
   }) {
     throw UnimplementedError('startPlayer() has not been implemented.');
   }

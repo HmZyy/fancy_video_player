@@ -1,7 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-
 import 'fancy_video_player_platform_interface.dart';
+import 'package:fancy_video_player/models/Subtitle.dart';
 
 /// An implementation of [FancyVideoPlayerPlatform] that uses method channels.
 class MethodChannelFancyVideoPlayer extends FancyVideoPlayerPlatform {
@@ -18,9 +20,10 @@ class MethodChannelFancyVideoPlayer extends FancyVideoPlayerPlatform {
   Future<String?> startPlayer({
     required String url,
     Map<String, String>? headers,
-    bool? autoPlay,
+    bool autoPlay = true,
     bool closeOnError = false,
     bool showErrorBox = false,
+    List<Subtitle>? subtitles,
   }) async {
     methodChannel.setMethodCallHandler(_handleMethod);
     final result = await methodChannel.invokeMethod<String>('startPlayer', {
@@ -29,6 +32,7 @@ class MethodChannelFancyVideoPlayer extends FancyVideoPlayerPlatform {
       "autoPlay": autoPlay,
       "closeOnError": closeOnError,
       "showErrorBox": showErrorBox,
+      "subtitles": jsonEncode(subtitles)
     });
     return result;
   }

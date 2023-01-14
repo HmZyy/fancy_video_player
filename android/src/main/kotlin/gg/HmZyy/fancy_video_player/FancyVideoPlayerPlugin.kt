@@ -8,12 +8,16 @@ import android.util.Log
 import androidx.annotation.NonNull
 import com.google.android.exoplayer2.PlaybackException
 import gg.HmZyy.SerializableMap
+import gg.HmZyy.fancy_video_player.utils.Subtitle
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.Serializable
 
 /** FancyVideoPlayerPlugin */
 class FancyVideoPlayerPlugin: FlutterPlugin, MethodCallHandler {
@@ -36,13 +40,23 @@ class FancyVideoPlayerPlugin: FlutterPlugin, MethodCallHandler {
       var autoPlay = call.argument<Boolean>("autoPlay")
       var closeOnError = call.argument<Boolean>("closeOnError")
       var showErrorBox = call.argument<Boolean>("showErrorBox")
+      val subtitlesRaw = call.argument<Serializable>("subtitles")
+      var subtitles: Array<Subtitle> = arrayOf()
+      if (subtitlesRaw != null) {
+        Log.i("flutter", "subtitles are : $subtitlesRaw")
+        val jsonArr = JSONArray(subtitlesRaw.toString())
+        for (i in 0 until jsonArr.length()) {
+          var sub = jsonArr.getJSONObject(i)
+          subtitles += Subtitle(sub.getString("url"), sub.getString("label"))
+        }
+      }
       if (headers == null) {
         headers = emptyMap()
         Log.e("flutter", "headers is null")
       }
       Log.i("flutter", url ?: "no url")
       if (url != null) {
-        startPlayer(url, headers, autoPlay, closeOnError, showErrorBox)
+        startPlayer(url, headers, autoPlay, closeOnError, showErrorBox, subtitles)
         result.success("Launched Success")
       }
       result.error("No Url provided","Failed to launch", "tried to call startPlayer with no url")
@@ -55,15 +69,18 @@ class FancyVideoPlayerPlugin: FlutterPlugin, MethodCallHandler {
     channel.setMethodCallHandler(null)
   }
 
-  private fun startPlayer(url: String, headers: Map<String, String>, autoPlay: Boolean?, closeOnError: Boolean?, showErrorBox: Boolean?) {
+  private fun startPlayer(url: String, headers: Map<String, String>, autoPlay: Boolean?, closeOnError: Boolean?, showErrorBox: Boolean?, subtitles: Array<Subtitle>) {
     val serializableHeaders = SerializableMap(headers)
     val intent = Intent(context, PlayerActivity::class.java)
+
+
     intent.addFlags(FLAG_ACTIVITY_NEW_TASK)
     intent.putExtra("url", url)
     intent.putExtra("headers", serializableHeaders)
     intent.putExtra("autoPlay", autoPlay)
     intent.putExtra("closeOnError", closeOnError)
     intent.putExtra("showErrorBox", showErrorBox)
+    intent.putExtra("subtitles", subtitles)
     context.startActivity(intent)
   }
 
