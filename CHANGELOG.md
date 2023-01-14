@@ -43,3 +43,7 @@
 ## 0.0.10
 
 - added subtitle support
+
+## 0.0.11
+
+- handling null subtitles
